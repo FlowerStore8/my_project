@@ -1,0 +1,258 @@
+''' Project №3 Tkinter Ping-Pong game
+
+    Developer:
+            Kozlovskii A.
+                        17704.1 '''
+
+from tkinter import *
+import random
+import time
+
+
+    # <--GLOBALS-->
+
+
+    # field
+WIDTH = 1000
+HEIGHT = 400
+
+    # ball
+BALL_SPEED_UP = 1.05 
+BALL_SPEED_STOP = 40
+RADIUS_OF_BALL = 35
+START_SPEED, BALL_SPEED_X, BALL_SPEED_Y = 15, 15, 15
+
+
+
+BALL_X_CHANGE = 20
+BALL_Y_CHANGE = 0
+
+
+    # racket
+WIDTH_RACKET = 15 
+HEIGHT_RACKET = 100
+
+    # speed
+RACKET_SPEED = 20
+LEFT_RACKET_SPEED = 0
+RIGHT_RACKET_SPEED = 0
+
+    # score
+SCORE_1 = 0
+SCORE_2 = 0
+
+    #Distance from right
+DISTANCE = WIDTH - WIDTH_RACKET 
+
+
+
+    # <--DEFS-->
+
+def main():
+    movement_of_ball()
+    move_rackets()
+    root.after(30, main)
+
+def score_up(player):
+    """Score update"""
+    global SCORE_1, SCORE_2
+    if player == 'right':
+        SCORE_1 += 1
+        if SCORE_1 == 11:
+            label['text'] = 'Second player \nWinner, winner, chicken dinner! \n ' + str(SCORE_2) + ':' + str(SCORE_1)
+            c.delete(ALL)
+            
+        c.itemconfig(score1_text, text=SCORE_1)
+        
+    else:
+        SCORE_2 += 1
+        if SCORE_2 == 11:
+            label['text'] = 'First player \nWinner, winner, chicken dinner! \n' + str(SCORE_2) + ':' + str(SCORE_1)
+            c.delete(ALL)
+            
+        c.itemconfig(score2_text, text=SCORE_2)
+        
+ 
+def ball_to_center():
+    """Change direction"""
+    global BALL_SPEED_X
+    # ball center
+    c.coords(BALL, WIDTH/2-RADIUS_OF_BALL/2,
+             HEIGHT/2-RADIUS_OF_BALL/2,
+             WIDTH/2+RADIUS_OF_BALL/2,
+             HEIGHT/2+RADIUS_OF_BALL/2)
+    # speed and direction
+    BALL_SPEED_X = -(BALL_SPEED_X * -START_SPEED) / abs(BALL_SPEED_X)
+
+
+def bounce(action):
+    """Ball rebound"""
+    global BALL_SPEED_X, BALL_SPEED_Y
+    if action == 'rebound':
+        BALL_SPEED_Y = random.randrange(-10, 10)
+        if abs(BALL_SPEED_X) < BALL_SPEED_STOP:
+            BALL_SPEED_X *= -BALL_SPEED_UP
+        else:
+            BALL_SPEED_Y = -BALL_SPEED_X
+    else:
+        BALL_SPEED_Y = -BALL_SPEED_Y
+
+
+def movement_of_ball():
+    """Ball movement"""
+    try:
+        
+        ball_left, ball_top, ball_right, ball_bot = c.coords(BALL) # borders coordinates
+        ball_center = (ball_top + ball_bot) / 2
+     
+        # vertical rebound
+        # no contact
+        if ball_right + BALL_SPEED_X < DISTANCE and ball_left + BALL_SPEED_X > WIDTH_RACKET:
+            c.move(BALL, BALL_SPEED_X, BALL_SPEED_Y)
+            
+        # in contact
+        elif ball_right == DISTANCE or ball_left == WIDTH_RACKET:
+            # right side check
+            if ball_right > WIDTH / 2:
+                if c.coords(RIGHT_RACKET)[1] < ball_center < c.coords(RIGHT_RACKET)[3]:
+                    bounce('rebound')
+                else:
+                    score_up('left')
+                    ball_to_center()
+            else:
+                # left side check
+                if c.coords(LEFT_RACKET)[1] < ball_center < c.coords(LEFT_RACKET)[3]:
+                    bounce('rebound')
+                else:
+                    score_up('right')
+                    ball_to_center()
+                    
+        # overflow
+        else:
+            if ball_right > WIDTH / 2:
+                c.move(BALL, DISTANCE - ball_right, BALL_SPEED_Y)
+            else:
+                c.move(BALL, -ball_left + WIDTH_RACKET, BALL_SPEED_Y)
+               
+        # horizontal rebound
+        if ball_top + BALL_SPEED_Y < 0 or ball_bot + BALL_SPEED_Y > HEIGHT:
+            bounce('ricochet')
+            
+    except IndexError:
+        pass
+
+    except ValueError:
+        pass
+
+
+def move_rackets():
+    """Rackets move"""
+    try:
+        
+        # dict = {racket : speed}
+        RACKETS = {LEFT_RACKET: LEFT_RACKET_SPEED, 
+                RIGHT_RACKET: RIGHT_RACKET_SPEED}
+        for racket in RACKETS:
+            # moving with speed
+            c.move(racket, 0, RACKETS[racket])
+            # racket overflow
+            if c.coords(racket)[1] < 0:
+                c.move(racket, 0, -c.coords(racket)[1])
+            elif c.coords(racket)[3] > HEIGHT:
+                c.move(racket, 0, HEIGHT - c.coords(racket)[3])
+                
+    except IndexError:
+        pass
+
+ 
+
+def handle(event):
+    """Keyboard def"""
+    global LEFT_RACKET_SPEED, RIGHT_RACKET_SPEED
+    if event.keysym == 'w':
+        LEFT_RACKET_SPEED = -RACKET_SPEED
+    elif event.keysym == 's':
+        LEFT_RACKET_SPEED = RACKET_SPEED
+    elif event.keysym == 'Up':
+        RIGHT_RACKET_SPEED = -RACKET_SPEED
+    elif event.keysym == 'Down':
+        RIGHT_RACKET_SPEED = RACKET_SPEED
+
+
+def racket_stop(event):
+    """Releasing reaction"""
+    global LEFT_RACKET_SPEED, RIGHT_RACKET_SPEED
+    if event.keysym in 'ws':
+        LEFT_RACKET_SPEED = 0
+    elif event.keysym in ('Up', 'Down'):
+        RIGHT_RACKET_SPEED = 0
+
+    
+
+
+
+    
+    # <--Tkinter-->
+
+root = Tk()
+
+
+root.title('Tkinter Ping-Pong game')
+main_menu = Menu(root)
+root.configure(menu = main_menu, background='white')
+
+
+
+
+first_item = Menu(main_menu, tearoff = 0)
+
+first_item.add_cascade(label = 'Play', command = main)
+first_item.add_cascade(label = 'Exit', command = root.destroy)
+
+main_menu.add_cascade(label = 'Game', menu = first_item)
+
+
+c = Canvas(root, width=WIDTH, height=HEIGHT, background="#ADFF2F")
+label = Label(root, text='A player with 11 points wins!',
+                      font='Times 18',  bg='white', fg="#283b15")
+
+label.pack()
+c.pack()
+
+
+
+
+
+    # field
+c.create_line(WIDTH_RACKET, 0, WIDTH_RACKET, HEIGHT, width=3, fill="#ffffff")
+c.create_line(WIDTH - WIDTH_RACKET, 0, WIDTH - WIDTH_RACKET, HEIGHT, width=3,
+                      fill="#ffffff")
+c.create_line(WIDTH/2, 0, WIDTH/2, HEIGHT, width=3, fill="#ffffff")
+         
+    # ball
+BALL = c.create_oval(WIDTH/2-RADIUS_OF_BALL/2, HEIGHT/2-RADIUS_OF_BALL/2,
+                             WIDTH/2+RADIUS_OF_BALL/2, HEIGHT/2+RADIUS_OF_BALL/2,
+                             fill="white")
+
+    # left racket
+LEFT_RACKET = c.create_line(WIDTH_RACKET/2, 0, WIDTH_RACKET/2, HEIGHT_RACKET,
+                                 width=WIDTH_RACKET, fill="#0000FF")
+         
+    # right racket
+RIGHT_RACKET = c.create_line(WIDTH-WIDTH_RACKET/2, 0, WIDTH-WIDTH_RACKET/2, 
+                                  HEIGHT_RACKET, width=WIDTH_RACKET, fill="#FF0000")
+
+    # score
+score1_text = c.create_text(WIDTH-WIDTH/3, HEIGHT_RACKET/4,
+                                 text=SCORE_1, font='Arial 24',
+                                 fill="#631010")
+         
+score2_text = c.create_text(WIDTH/3, HEIGHT_RACKET/4,
+                                  text=SCORE_2, font='Arial 24',
+                                  fill="#631010")
+
+c.focus_set()
+c.bind('<KeyPress>', handle)
+c.bind('<KeyRelease>', racket_stop)
+
+root.mainloop()
